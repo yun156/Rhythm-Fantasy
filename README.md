@@ -43,6 +43,12 @@ https://www.youtube.com/watch?v=_YREDupUg_o
 https://www.youtube.com/watch?v=O_Y5Rl2Ensc
 
 # 🚀 빌드 및 실행 방법
+```
+./bin/oled_daemon &
+```
+```
+./bin/game
+```
 
 # 팀원 정보
 | 이름   | 수행 역할                                    |
