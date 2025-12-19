@@ -35,6 +35,48 @@ OLED에는 추가된 총 점수와 콤보 점수가 나타납니다.
 
 
 # 📁 프로젝트 구조
+```
+rhythm_fantasy/
+├─ src/
+│  ├─ game/
+│  │  ├─ audio.c
+│  │  ├─ audio.h
+│  │  ├─ beatmap.c
+│  │  ├─ beatmap.h
+│  │  ├─ game.c
+│  │  ├─ gpio_input.c
+│  │  ├─ gpio_input.h
+│  │  ├─ ingame.c
+│  │  ├─ ingame.h
+│  │  ├─ main.c
+│  │  ├─ bin
+│  │  ├─ build
+│  │  ├─ select_musics.c
+│  │  └─ select_musics.h
+│  ├─ oled/
+│  │  ├─ hal_linux_i2c_shim.cpp
+│  │  ├─ hal_linux_i2c_shim.h
+│  │  ├─ oled_daemon.cpp   (별도 실행파일)
+│  │  ├─ RJA_SSD1306.cpp
+│  │  ├─ RJA_SSD1306.h
+│  │  └─ oled_client.cpp
+│  ├─ musics/ 
+│  │  ├─ Pokemon_song.wav
+│  │  └─ Pokemon_song.map
+│  ├─ Makefile
+│  ├─ bin/
+│  │  ├─ game
+│  │  ├─ oled_daemon
+│  ├─ build/
+│  │  ├─ audio.o
+│  │  ├─ game.o
+│  │  ├─ ingame.o
+│  │  ├─ oled_client.o
+│  │  ├─ beatmap.o
+│  │  ├─ gpio_input.o
+│  │  ├─ main.o
+│  │  └─  select_musics.o
+```
 
 # 🎬 DEMO 영상 링크
 1. 게임 실행 화면 영상
@@ -43,12 +85,58 @@ https://www.youtube.com/watch?v=_YREDupUg_o
 https://www.youtube.com/watch?v=O_Y5Rl2Ensc
 
 # 🚀 빌드 및 실행 방법
+1. 라즈베리파이 필수 패키지 설치(g++ libcurse, libgpiod, i2c-tools)
+```
+sudo apt update
+sudo apt install -y build-essential g++ libncurses-dev libgpiod-dev \
+                    alsa-utils i2c-tools
+```
+2. I2C 인터페이스 활성화, 현재 사용자에게 권한 부여
+```
+sudo raspi-config nonint do_i2c 0
+sudo usermod -aG gpio,i2c,audio $USER
+```
+3. 빌드(c소스와 c++소스 따로 빌드)
+```
+cd ~/rhythm_fantasy
+
+rm -rf build bin
+mkdir -p build bin
+
+CFLAGS="-std=c11 -O2 -Isrc -Isrc/game -Isrc/oled -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_DEFAULT_SOURCE"
+CXXFLAGS="-std=c++17 -O2 -Isrc -Isrc/game -Isrc/oled"
+
+for f in src/game/*.c; do
+  base="$(basename "$f")"
+  case "$base" in
+    server.c) continue ;;
+  esac
+  gcc $CFLAGS -c "$f" -o "build/${base%.c}.o" || exit 1
+done
+
+g++ $CXXFLAGS -c src/oled/oled_client.cpp        -o build/oled_client.o       || exit 1
+g++ $CXXFLAGS -c src/oled/hal_linux_i2c_shim.cpp -o build/hal_linux_i2c_shim.o || exit 1
+g++ $CXXFLAGS -c src/oled/oled_daemon.cpp        -o build/oled_daemon.o       || exit 1
+
+g++ -o bin/game \
+  build/audio.o build/beatmap.o build/game.o build/gpio_input.o build/ingame.o \
+  build/network.o build/select_musics.o build/main.o build/oled_client.o \
+  -lncurses -lgpiod -lpthread -lm
+
+g++ -o bin/oled_daemon \
+  build/oled_daemon.o build/hal_linux_i2c_shim.o
+```
+oled_daemon 먼저 백그라운드로 실행
 ```
 ./bin/oled_daemon &
 ```
+게임 실행(닉네임 입력과 함께)
 ```
-./bin/game
+./bin/game Yun
 ```
+
+
+
 
 # 팀원 정보
 | 이름   | 수행 역할                                    |
